@@ -1,0 +1,8 @@
+# Trading Bot Cron Schedule
+# Add these entries to your crontab with: crontab -e
+
+# Run after US market close, Monday–Friday at 5:30 PM
+30 17 * * 1-5 /bin/bash /root/run_trading.sh >> /root/trading/cron_log.log 2>&1
+
+# Run at midnight Tuesday–Saturday (covers after-hours/overnight)
+0 0 * * 2-6 /bin/bash /root/run_trading.sh >> /root/trading/cron_log.log 2>&1
