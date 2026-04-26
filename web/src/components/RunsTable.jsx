@@ -11,6 +11,7 @@ export default function RunsTable({ runs }) {
               <th className="pb-3 pr-4 font-medium">Return</th>
               <th className="pb-3 pr-4 font-medium hidden sm:table-cell">TQQQ</th>
               <th className="pb-3 pr-4 font-medium hidden sm:table-cell">AGG</th>
+              <th className="pb-3 pr-4 font-medium hidden sm:table-cell">IBIT</th>
               <th className="pb-3 pr-4 font-medium hidden md:table-cell">Sharpe</th>
               <th className="pb-3 font-medium">Signal</th>
             </tr>
@@ -34,6 +35,7 @@ export default function RunsTable({ runs }) {
                   </td>
                   <td className="py-2.5 pr-4 text-slate-400 tabular-nums hidden sm:table-cell">${r.price_tqqq?.toFixed(2)}</td>
                   <td className="py-2.5 pr-4 text-slate-400 tabular-nums hidden sm:table-cell">${r.price_agg?.toFixed(2)}</td>
+                  <td className="py-2.5 pr-4 text-slate-400 tabular-nums hidden sm:table-cell">{r.price_ibit != null ? `$${r.price_ibit.toFixed(2)}` : "—"}</td>
                   <td className="py-2.5 pr-4 text-slate-400 tabular-nums hidden md:table-cell">{r.sharpe?.toFixed(2) ?? "—"}</td>
                   <td className="py-2.5">
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${aStyle}`}>

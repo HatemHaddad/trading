@@ -150,7 +150,7 @@ export default function App() {
         </div>
 
         {/* ── Holdings ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <HoldingCard ticker="TQQQ" price={latest.price_tqqq} shares={latest.shares_tqqq}
             buyPrice={latest.buy_price_tqqq} currVal={latest.curr_val_tqqq}
             profit={latest.profit_tqqq} ret={latest.return_tqqq} alloc={latest.alloc_tqqq}
@@ -159,6 +159,10 @@ export default function App() {
             buyPrice={latest.buy_price_agg} currVal={latest.curr_val_agg}
             profit={latest.profit_agg} ret={latest.return_agg} alloc={latest.alloc_agg}
             color={retColor(latest.return_agg)} />
+          <HoldingCard ticker="IBIT" price={latest.price_ibit} shares={latest.shares_ibit}
+            buyPrice={latest.buy_price_ibit} currVal={latest.curr_val_ibit}
+            profit={latest.profit_ibit} ret={latest.return_ibit} alloc={latest.alloc_ibit}
+            color={retColor(latest.return_ibit)} />
         </div>
 
         {/* ── Chart + Quarterly ── */}

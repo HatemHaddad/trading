@@ -6,7 +6,6 @@ DB_PATH = "/root/trading/trading.db"
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    # Create table if it doesn't exist
     c.execute('''
         CREATE TABLE IF NOT EXISTS runs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,17 +43,31 @@ def init_db():
             shares_to_trade REAL
         )
     ''')
+
+    # Migrate: add IBIT columns if not present
+    existing = {row[1] for row in c.execute("PRAGMA table_info(runs)").fetchall()}
+    new_cols = {
+        "price_ibit":    "REAL",
+        "shares_ibit":   "REAL",
+        "buy_price_ibit":"REAL",
+        "buy_val_ibit":  "REAL",
+        "curr_val_ibit": "REAL",
+        "profit_ibit":   "REAL",
+        "return_ibit":   "REAL",
+        "alloc_ibit":    "REAL",
+    }
+    for col, typ in new_cols.items():
+        if col not in existing:
+            c.execute(f"ALTER TABLE runs ADD COLUMN {col} {typ}")
+
     conn.commit()
     conn.close()
 
 def insert_run(data):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    
     columns = ', '.join(data.keys())
     placeholders = ', '.join(['?' for _ in data])
-    sql = f'INSERT INTO runs ({columns}) VALUES ({placeholders})'
-    
-    c.execute(sql, list(data.values()))
+    c.execute(f'INSERT INTO runs ({columns}) VALUES ({placeholders})', list(data.values()))
     conn.commit()
     conn.close()
