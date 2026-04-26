@@ -1,40 +1,51 @@
 export default function RunsTable({ runs }) {
   return (
-    <div className="bg-gray-800 rounded-xl p-4 overflow-x-auto">
-      <h2 className="text-gray-300 font-semibold mb-4">Run History</h2>
-      <table className="w-full text-sm text-left text-gray-400">
-        <thead className="text-xs text-gray-500 uppercase border-b border-gray-700">
-          <tr>
-            <th className="pb-2 pr-4">Date</th>
-            <th className="pb-2 pr-4">Total Value</th>
-            <th className="pb-2 pr-4">Return</th>
-            <th className="pb-2 pr-4">TQQQ</th>
-            <th className="pb-2 pr-4">AGG</th>
-            <th className="pb-2 pr-4">Sharpe</th>
-            <th className="pb-2">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {runs.map((r, i) => {
-            const ret = (r.total_return * 100).toFixed(2);
-            const retColor = r.total_return >= 0 ? "text-green-400" : "text-red-400";
-            const actionColor = r.quarter_action === "BUY"
-              ? "text-green-400" : r.quarter_action === "SELL"
-              ? "text-red-400" : "text-yellow-400";
-            return (
-              <tr key={i} className="border-b border-gray-700 hover:bg-gray-750">
-                <td className="py-2 pr-4 whitespace-nowrap">{r.run_at.slice(0, 16)}</td>
-                <td className="py-2 pr-4">${r.total_curr_val?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                <td className={`py-2 pr-4 ${retColor}`}>{ret >= 0 ? "+" : ""}{ret}%</td>
-                <td className="py-2 pr-4">${r.price_tqqq?.toFixed(2)}</td>
-                <td className="py-2 pr-4">${r.price_agg?.toFixed(2)}</td>
-                <td className="py-2 pr-4">{r.sharpe?.toFixed(2) ?? "—"}</td>
-                <td className={`py-2 font-semibold ${actionColor}`}>{r.quarter_action}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="bg-[#0d1424] border border-[#1a2640] rounded-xl p-5">
+      <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Run History</span>
+      <div className="overflow-x-auto mt-4">
+        <table className="w-full text-sm text-left min-w-[420px]">
+          <thead>
+            <tr className="text-slate-600 text-xs uppercase tracking-wider border-b border-[#1a2640]">
+              <th className="pb-3 pr-4 font-medium">Date</th>
+              <th className="pb-3 pr-4 font-medium">Value</th>
+              <th className="pb-3 pr-4 font-medium">Return</th>
+              <th className="pb-3 pr-4 font-medium hidden sm:table-cell">TQQQ</th>
+              <th className="pb-3 pr-4 font-medium hidden sm:table-cell">AGG</th>
+              <th className="pb-3 pr-4 font-medium hidden md:table-cell">Sharpe</th>
+              <th className="pb-3 font-medium">Signal</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#1a2640]">
+            {runs.map((r, i) => {
+              const ret = (r.total_return * 100).toFixed(2);
+              const retC = r.total_return >= 0 ? "text-emerald-400" : "text-red-400";
+              const aStyle =
+                r.quarter_action === "BUY"  ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" :
+                r.quarter_action === "SELL" ? "text-red-400 bg-red-400/10 border-red-400/20" :
+                                              "text-amber-400 bg-amber-400/10 border-amber-400/20";
+              return (
+                <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                  <td className="py-2.5 pr-4 font-mono text-xs text-slate-500 whitespace-nowrap">{r.run_at.slice(0, 10)}</td>
+                  <td className="py-2.5 pr-4 text-slate-200 font-semibold tabular-nums whitespace-nowrap">
+                    ${r.total_curr_val?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
+                  <td className={`py-2.5 pr-4 font-semibold tabular-nums whitespace-nowrap ${retC}`}>
+                    {ret >= 0 ? "+" : ""}{ret}%
+                  </td>
+                  <td className="py-2.5 pr-4 text-slate-400 tabular-nums hidden sm:table-cell">${r.price_tqqq?.toFixed(2)}</td>
+                  <td className="py-2.5 pr-4 text-slate-400 tabular-nums hidden sm:table-cell">${r.price_agg?.toFixed(2)}</td>
+                  <td className="py-2.5 pr-4 text-slate-400 tabular-nums hidden md:table-cell">{r.sharpe?.toFixed(2) ?? "—"}</td>
+                  <td className="py-2.5">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${aStyle}`}>
+                      {r.quarter_action}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -1,36 +1,66 @@
 export default function QuarterlyTarget({ data }) {
-  const pct = data.quarter_perf * 100;
-  const progress = Math.min(Math.max((pct / 9) * 100, 0), 100);
-  const actionColor = data.quarter_action === "BUY"
-    ? "text-green-400" : data.quarter_action === "SELL"
-    ? "text-red-400" : "text-yellow-400";
+  const perfPct = data.quarter_perf * 100;
+  const progress = Math.min(Math.max(perfPct / 9, 0), 1);
+
+  const r = 38;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - progress);
+
+  const isPos = perfPct >= 0;
+  const action = data.quarter_action;
+  const actionStyle =
+    action === "BUY"  ? { text: "text-emerald-400", bg: "bg-emerald-400/10 border-emerald-400/20" } :
+    action === "SELL" ? { text: "text-red-400",     bg: "bg-red-400/10 border-red-400/20" } :
+                        { text: "text-amber-400",   bg: "bg-amber-400/10 border-amber-400/20" };
 
   return (
-    <div className="bg-gray-800 rounded-xl p-4 flex flex-col gap-3">
-      <h2 className="text-gray-300 font-semibold">Quarterly Target (9%)</h2>
-      <div className="flex justify-between text-sm text-gray-400">
-        <span>Progress</span>
-        <span className={pct >= 0 ? "text-green-400" : "text-red-400"}>{pct.toFixed(2)}%</span>
+    <div className="bg-[#0d1424] border border-[#1a2640] rounded-xl p-5 flex flex-col gap-5">
+      <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Quarterly Target</span>
+
+      {/* Circle progress */}
+      <div className="flex items-center justify-center">
+        <div className="relative w-[96px] h-[96px]">
+          <svg width={96} height={96} className="-rotate-90 absolute inset-0">
+            <circle cx={48} cy={48} r={r} fill="none" stroke="#1a2640" strokeWidth={7} />
+            <circle
+              cx={48} cy={48} r={r}
+              fill="none"
+              stroke={isPos ? "#6366f1" : "#ef4444"}
+              strokeWidth={7}
+              strokeLinecap="round"
+              strokeDasharray={circ}
+              strokeDashoffset={offset}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className={`font-bold text-lg tabular-nums leading-none ${isPos ? "text-emerald-400" : "text-red-400"}`}>
+              {perfPct.toFixed(1)}%
+            </span>
+            <span className="text-slate-600 text-xs mt-0.5">of 9%</span>
+          </div>
+        </div>
       </div>
-      <div className="w-full bg-gray-700 rounded-full h-3">
-        <div
-          className="bg-indigo-500 h-3 rounded-full transition-all"
-          style={{ width: `${progress}%` }}
-        />
+
+      {/* Action badge */}
+      <div className="flex justify-center">
+        <span className={`text-xs font-bold px-3 py-1 rounded-full border ${actionStyle.text} ${actionStyle.bg}`}>
+          {action}
+        </span>
       </div>
-      <div className="grid grid-cols-3 gap-2 mt-1 text-sm">
-        <div className="flex flex-col">
-          <span className="text-gray-500">Action</span>
-          <span className={`font-bold ${actionColor}`}>{data.quarter_action}</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-gray-500">Shares</span>
-          <span className="text-white font-semibold">{data.shares_to_trade?.toFixed(2) ?? "—"}</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-gray-500">Gap</span>
-          <span className="text-white font-semibold">${data.quarter_gap?.toFixed(2) ?? "—"}</span>
-        </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { label: "Shares to trade", value: data.shares_to_trade?.toFixed(2) ?? "—" },
+          { label: "Gap to target",   value: `$${Math.abs(data.quarter_gap)?.toFixed(0) ?? "—"}` },
+          { label: "Target value",    value: `$${data.quarter_target_value?.toLocaleString(undefined, {maximumFractionDigits: 0}) ?? "—"}` },
+          { label: "Current value",   value: `$${data.quarter_start_value?.toLocaleString(undefined, {maximumFractionDigits: 0}) ?? "—"}` },
+        ].map(({ label, value }) => (
+          <div key={label} className="bg-[#080c14] rounded-lg p-2.5 flex flex-col gap-0.5">
+            <span className="text-slate-600 text-xs">{label}</span>
+            <span className="text-slate-200 font-semibold text-sm tabular-nums">{value}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

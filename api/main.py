@@ -1,5 +1,7 @@
 import sqlite3
 import os
+import numpy as np
+import yfinance as yf
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -53,3 +55,50 @@ def runs(limit: int = 50, offset: int = 0):
     total = conn.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
     conn.close()
     return {"total": total, "runs": [dict(r) for r in rows]}
+
+
+@app.get("/api/watchlist")
+def watchlist():
+    raw = yf.download(["SPMO"], period="1y", auto_adjust=False, progress=False)
+    if raw.empty:
+        raise HTTPException(status_code=503, detail="Could not fetch SPMO data")
+
+    close = raw["Close"]
+    spmo = close["SPMO"] if hasattr(close, "columns") and "SPMO" in close.columns else close.squeeze()
+    spmo = spmo.dropna()
+
+    if len(spmo) == 0:
+        raise HTTPException(status_code=503, detail="No SPMO price data")
+
+    curr = float(spmo.iloc[-1])
+
+    def rel_ret(days):
+        if len(spmo) < days + 1:
+            return None
+        return float((curr - spmo.iloc[-days]) / spmo.iloc[-days])
+
+    daily_ret = spmo.pct_change().dropna()
+    vol = float(daily_ret.std() * np.sqrt(252))
+    ann_ret = float(daily_ret.mean() * 252)
+    sharpe = float(ann_ret / vol) if vol > 1e-9 else None
+
+    roll_max = spmo.cummax()
+    max_dd = float(((spmo - roll_max) / roll_max).min())
+
+    ma50 = float(spmo.iloc[-50:].mean()) if len(spmo) >= 50 else None
+
+    return {
+        "ticker": "SPMO",
+        "name": "Invesco S&P 500 Momentum ETF",
+        "curr_price": curr,
+        "ret_1m": rel_ret(22),
+        "ret_3m": rel_ret(66),
+        "ret_6m": rel_ret(132),
+        "ret_1y": float((curr - float(spmo.iloc[0])) / float(spmo.iloc[0])),
+        "volatility": vol,
+        "ann_return": ann_ret,
+        "sharpe": sharpe,
+        "max_drawdown": max_dd,
+        "ma50": ma50,
+        "above_ma50": bool(curr > ma50) if ma50 is not None else None,
+    }
