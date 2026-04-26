@@ -4,3 +4,6 @@ venv/
 trading.db
 *.db
 .env
+cron_log.log
+web/node_modules/
+web/dist/
