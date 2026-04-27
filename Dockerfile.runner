@@ -1,0 +1,10 @@
+FROM python:3.11-slim
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends cron && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY db.py run_and_save.py portfolio.json ./
+COPY docker/runner-crontab /etc/cron.d/trading
+RUN chmod 0644 /etc/cron.d/trading
+# Entrypoint: export env vars so cron can see them, then run cron in foreground
+CMD ["bash", "-c", "printenv > /etc/environment && cron -f"]

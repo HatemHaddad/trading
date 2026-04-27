@@ -40,7 +40,7 @@ except Exception as e:
 # ── Read portfolio config ─────────────────────────────────────
 print("\nProcessing portfolio data...")
 
-portfolio_path = "/root/trading/portfolio.json"
+portfolio_path = os.getenv("PORTFOLIO_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "portfolio.json"))
 portfolio = json.load(open(portfolio_path))
 
 s_tqqq = float(portfolio["shares_tqqq"])
@@ -181,7 +181,7 @@ import sqlite3 as _sqlite3
 daily_change = None
 daily_change_pct = None
 try:
-    _conn = _sqlite3.connect("/root/trading/trading.db")
+    _conn = _sqlite3.connect(os.getenv("DB_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "trading.db")))
     today_str = datetime.now().strftime("%Y-%m-%d")
     prev_row = _conn.execute(
         "SELECT total_curr_val FROM runs WHERE date(run_at) < ? ORDER BY run_at DESC LIMIT 1",

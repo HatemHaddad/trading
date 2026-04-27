@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+*.db
+web/node_modules/
+web/dist/
+.env
+cron_log.log
+.git/

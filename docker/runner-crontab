@@ -1,0 +1,5 @@
+# Run after US market close Mon-Fri at 5:30 PM
+30 17 * * 1-5 root . /etc/environment; cd /app && python run_and_save.py >> /proc/1/fd/1 2>&1
+
+# Run at midnight Tue-Sat (covers after-hours)
+0 0 * * 2-6 root . /etc/environment; cd /app && python run_and_save.py >> /proc/1/fd/1 2>&1

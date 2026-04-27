@@ -1,0 +1,31 @@
+services:
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./trading.db:/app/trading.db
+      - ./portfolio.json:/app/portfolio.json
+    env_file: .env
+    restart: always
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "3000:3000"
+    restart: always
+
+  runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.runner
+    volumes:
+      - ./trading.db:/app/trading.db
+      - ./portfolio.json:/app/portfolio.json
+    env_file: .env
+    restart: always
