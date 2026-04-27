@@ -162,6 +162,12 @@ export default function App() {
               <span className="text-slate-500">P&L <span className={`font-semibold tabular-nums ${retC}`}>{fmt(latest.total_profit)}</span></span>
               <span className="text-slate-700">·</span>
               <span className="text-slate-500">Cost <span className="text-slate-300 font-semibold tabular-nums">{fmt(latest.total_buy_val)}</span></span>
+              {latest.daily_change != null && (<>
+                <span className="text-slate-700">·</span>
+                <span className="text-slate-500">Today <span className={`font-semibold tabular-nums ${retColor(latest.daily_change_pct)}`}>
+                  {latest.daily_change >= 0 ? "+" : ""}{fmt(latest.daily_change)} ({pct(latest.daily_change_pct)})
+                </span></span>
+              </>)}
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-slate-500 text-xs mt-1">
@@ -171,11 +177,16 @@ export default function App() {
         </div>
 
         {/* ── Metrics strip ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <MetricPill label="Daily Change"
+            value={latest.daily_change != null
+              ? `${latest.daily_change >= 0 ? "+" : ""}${fmt(latest.daily_change)}`
+              : "—"}
+            color={retColor(latest.daily_change_pct)} />
+          <MetricPill label="Daily %" value={pct(latest.daily_change_pct)} color={retColor(latest.daily_change_pct)} />
           <MetricPill label="Sharpe Ratio" value={latest.sharpe?.toFixed(2) ?? "—"} />
           <MetricPill label="Max Drawdown" value={pct(latest.max_drawdown)} color="text-red-400" />
           <MetricPill label="Ann. Return"  value={latest.ann_return != null ? pct(latest.ann_return) : "—"} color={retColor(latest.ann_return)} />
-          <MetricPill label="Volatility"   value={latest.volatility != null ? pct(latest.volatility) : "—"} color="text-amber-400" />
         </div>
 
         {/* ── Holdings ── */}

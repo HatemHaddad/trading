@@ -38,7 +38,8 @@ def history(limit: int = 90):
     conn = get_db()
     rows = conn.execute(
         "SELECT run_at, total_curr_val, total_return, price_tqqq, price_agg, "
-        "price_adc, aed_usd_rate, curr_val_adc, curr_val_adc_usd, sharpe, max_drawdown "
+        "price_adc, aed_usd_rate, curr_val_adc, curr_val_adc_usd, sharpe, max_drawdown, "
+        "daily_change, daily_change_pct "
         "FROM runs ORDER BY run_at ASC LIMIT ?",
         (limit,)
     ).fetchall()

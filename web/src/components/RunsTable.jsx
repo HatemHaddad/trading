@@ -13,6 +13,7 @@ export default function RunsTable({ runs }) {
               <th className="pb-3 pr-4 font-medium hidden sm:table-cell">AGG</th>
               <th className="pb-3 pr-4 font-medium hidden sm:table-cell">IBIT</th>
               <th className="pb-3 pr-4 font-medium hidden lg:table-cell">ADC (AED)</th>
+              <th className="pb-3 pr-4 font-medium hidden sm:table-cell">Day Chg</th>
               <th className="pb-3 pr-4 font-medium hidden md:table-cell">Sharpe</th>
               <th className="pb-3 font-medium">Signal</th>
             </tr>
@@ -38,6 +39,11 @@ export default function RunsTable({ runs }) {
                   <td className="py-2.5 pr-4 text-slate-400 tabular-nums hidden sm:table-cell">${r.price_agg?.toFixed(2)}</td>
                   <td className="py-2.5 pr-4 text-slate-400 tabular-nums hidden sm:table-cell">{r.price_ibit != null ? `$${r.price_ibit.toFixed(2)}` : "—"}</td>
                   <td className="py-2.5 pr-4 text-slate-400 tabular-nums hidden lg:table-cell">{r.price_adc != null ? `${r.price_adc.toFixed(3)}` : "—"}</td>
+                  <td className={`py-2.5 pr-4 font-semibold tabular-nums hidden sm:table-cell whitespace-nowrap ${r.daily_change_pct == null ? "text-slate-600" : r.daily_change_pct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    {r.daily_change_pct != null
+                      ? `${r.daily_change_pct >= 0 ? "+" : ""}${(r.daily_change_pct * 100).toFixed(2)}%`
+                      : "—"}
+                  </td>
                   <td className="py-2.5 pr-4 text-slate-400 tabular-nums hidden md:table-cell">{r.sharpe?.toFixed(2) ?? "—"}</td>
                   <td className="py-2.5">
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${aStyle}`}>

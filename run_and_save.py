@@ -176,6 +176,28 @@ def f(v):
     except:
         return None
 
+# ── Daily change vs previous calendar day ────────────────────
+import sqlite3 as _sqlite3
+daily_change = None
+daily_change_pct = None
+try:
+    _conn = _sqlite3.connect("/root/trading/trading.db")
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    prev_row = _conn.execute(
+        "SELECT total_curr_val FROM runs WHERE date(run_at) < ? ORDER BY run_at DESC LIMIT 1",
+        (today_str,)
+    ).fetchone()
+    _conn.close()
+    if prev_row and prev_row[0]:
+        prev_val = prev_row[0]
+        daily_change = total_curr_val - prev_val
+        daily_change_pct = daily_change / prev_val
+        print(f"📅 Daily change: ${daily_change:+,.2f} ({daily_change_pct*100:+.2f}%)")
+    else:
+        print("📅 No previous day data for daily change calculation.")
+except Exception as e:
+    print(f"⚠️ Could not compute daily change: {e}")
+
 # ── Save to DB ────────────────────────────────────────────────
 try:
     init_db()
@@ -220,6 +242,8 @@ try:
         "aed_usd_rate":           aed_usd_rate,
         "curr_val_adc_usd":       curr_val_adc_usd,
         "buy_val_adc_usd":        buy_val_adc_usd,
+        "daily_change":           f(daily_change),
+        "daily_change_pct":       f(daily_change_pct),
         "ann_return":             ann_ret,
         "volatility":             vol,
         "sharpe":                 f(sharpe),
@@ -242,6 +266,7 @@ tg_report = f"""
 _{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}_
 
 💰 *Total Value:* `${total_curr_val:,.2f}` USD
+📅 *Daily Change:* `{"${:+,.2f} ({:+.2f}%)".format(daily_change, daily_change_pct*100) if daily_change is not None else "N/A"}`
 📈 *Total Return:* `{f(total_return)*100:+.2f}%` (${total_profit:,.2f})
 
 🔹 *TQQQ:* ${curr_tqqq:,.2f} ({f(return_tqqq)*100:+.2f}%)

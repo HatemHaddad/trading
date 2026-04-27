@@ -66,6 +66,8 @@ def init_db():
         "aed_usd_rate":      "REAL",
         "curr_val_adc_usd":  "REAL",
         "buy_val_adc_usd":   "REAL",
+        "daily_change":      "REAL",
+        "daily_change_pct":  "REAL",
     }
     for col, typ in new_cols.items():
         if col not in existing:
