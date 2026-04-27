@@ -47,14 +47,25 @@ def init_db():
     # Migrate: add IBIT columns if not present
     existing = {row[1] for row in c.execute("PRAGMA table_info(runs)").fetchall()}
     new_cols = {
-        "price_ibit":    "REAL",
-        "shares_ibit":   "REAL",
-        "buy_price_ibit":"REAL",
-        "buy_val_ibit":  "REAL",
-        "curr_val_ibit": "REAL",
-        "profit_ibit":   "REAL",
-        "return_ibit":   "REAL",
-        "alloc_ibit":    "REAL",
+        "price_ibit":        "REAL",
+        "shares_ibit":       "REAL",
+        "buy_price_ibit":    "REAL",
+        "buy_val_ibit":      "REAL",
+        "curr_val_ibit":     "REAL",
+        "profit_ibit":       "REAL",
+        "return_ibit":       "REAL",
+        "alloc_ibit":        "REAL",
+        "price_adc":         "REAL",
+        "shares_adc":        "REAL",
+        "buy_price_adc":     "REAL",
+        "buy_val_adc":       "REAL",
+        "curr_val_adc":      "REAL",
+        "profit_adc":        "REAL",
+        "return_adc":        "REAL",
+        "alloc_adc":         "REAL",
+        "aed_usd_rate":      "REAL",
+        "curr_val_adc_usd":  "REAL",
+        "buy_val_adc_usd":   "REAL",
     }
     for col, typ in new_cols.items():
         if col not in existing:

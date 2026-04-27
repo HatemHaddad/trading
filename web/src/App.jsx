@@ -10,6 +10,11 @@ function fmt(n, d = 2) {
     ? `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })}`
     : "—";
 }
+function fmtAED(n, d = 2) {
+  return n != null
+    ? `AED ${Number(n).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d })}`
+    : "—";
+}
 function pct(n) {
   if (n == null) return "—";
   const v = (n * 100).toFixed(2);
@@ -28,26 +33,38 @@ function MetricPill({ label, value, color = "text-slate-200" }) {
   );
 }
 
-function HoldingCard({ ticker, price, shares, buyPrice, currVal, profit, ret, alloc, color }) {
+function HoldingCard({ ticker, price, shares, buyPrice, currVal, profit, ret, alloc, color, isAED = false, usdEquiv, aedRate }) {
   const allocPct = alloc != null ? Math.round(alloc * 100) : 0;
+  const priceStr = isAED
+    ? (price != null ? `AED ${price.toFixed(3)}` : "—")
+    : `$${price?.toFixed(2) ?? "—"}`;
+  const costStr  = isAED ? `AED ${buyPrice?.toFixed(3)}` : `$${buyPrice?.toFixed(2)}`;
+  const valStr   = isAED ? fmtAED(currVal) : fmt(currVal);
+  const plStr    = isAED ? fmtAED(profit)  : fmt(profit);
+
   return (
     <div className="bg-[#0d1424] border border-[#1a2640] rounded-xl p-5 flex flex-col gap-4">
       <div className="flex items-start justify-between">
         <div>
-          <span className="text-slate-500 text-xs uppercase tracking-widest">Holding</span>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-500 text-xs uppercase tracking-widest">Holding</span>
+            {isAED && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-wider">AED</span>
+            )}
+          </div>
           <div className="text-2xl font-bold text-white mt-1">{ticker}</div>
         </div>
         <div className="text-right">
-          <div className="text-xl font-bold tabular-nums text-slate-200">${price?.toFixed(2) ?? "—"}</div>
+          <div className="text-xl font-bold tabular-nums text-slate-200">{priceStr}</div>
           <div className={`text-sm font-semibold tabular-nums mt-0.5 ${color}`}>{pct(ret)}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Shares",   value: shares?.toFixed(2) },
-          { label: "Avg Cost", value: `$${buyPrice?.toFixed(2)}` },
-          { label: "Value",    value: fmt(currVal) },
+          { label: "Shares",   value: shares?.toLocaleString(undefined, { maximumFractionDigits: 0 }) },
+          { label: "Avg Cost", value: costStr },
+          { label: "Value",    value: valStr },
         ].map(({ label, value }) => (
           <div key={label} className="flex flex-col gap-0.5">
             <span className="text-slate-600 text-xs">{label}</span>
@@ -58,8 +75,20 @@ function HoldingCard({ ticker, price, shares, buyPrice, currVal, profit, ret, al
 
       <div className="bg-[#080c14] rounded-lg px-3 py-2.5 flex items-center justify-between">
         <span className="text-slate-500 text-xs">Unrealised P&L</span>
-        <span className={`font-bold tabular-nums text-sm ${color}`}>{fmt(profit)}</span>
+        <span className={`font-bold tabular-nums text-sm ${color}`}>{plStr}</span>
       </div>
+
+      {isAED && usdEquiv != null && (
+        <div className="bg-[#080c14] rounded-lg px-3 py-2.5 flex items-center justify-between">
+          <span className="text-slate-500 text-xs">≈ USD Value</span>
+          <div className="text-right">
+            <span className="text-slate-300 font-semibold tabular-nums text-sm">{fmt(usdEquiv)}</span>
+            {aedRate != null && (
+              <div className="text-slate-600 text-[10px] tabular-nums">1 USD = {aedRate.toFixed(4)} AED</div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div>
         <div className="flex justify-between text-xs mb-1.5">
@@ -150,7 +179,7 @@ export default function App() {
         </div>
 
         {/* ── Holdings ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <HoldingCard ticker="TQQQ" price={latest.price_tqqq} shares={latest.shares_tqqq}
             buyPrice={latest.buy_price_tqqq} currVal={latest.curr_val_tqqq}
             profit={latest.profit_tqqq} ret={latest.return_tqqq} alloc={latest.alloc_tqqq}
@@ -163,6 +192,11 @@ export default function App() {
             buyPrice={latest.buy_price_ibit} currVal={latest.curr_val_ibit}
             profit={latest.profit_ibit} ret={latest.return_ibit} alloc={latest.alloc_ibit}
             color={retColor(latest.return_ibit)} />
+          <HoldingCard ticker="ADC" price={latest.price_adc} shares={latest.shares_adc}
+            buyPrice={latest.buy_price_adc} currVal={latest.curr_val_adc}
+            profit={latest.profit_adc} ret={latest.return_adc} alloc={latest.alloc_adc}
+            color={retColor(latest.return_adc)}
+            isAED={true} usdEquiv={latest.curr_val_adc_usd} aedRate={latest.aed_usd_rate} />
         </div>
 
         {/* ── Chart + Quarterly ── */}

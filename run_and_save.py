@@ -49,6 +49,8 @@ s_agg  = float(portfolio["shares_agg"])
 b_agg  = float(portfolio["buy_price_agg"])
 s_ibit = float(portfolio.get("shares_ibit", 0))
 b_ibit = float(portfolio.get("buy_price_ibit", 0))
+s_adc  = float(portfolio.get("shares_adc", 0))
+b_adc  = float(portfolio.get("buy_price_adc", 0))
 q_base = float(portfolio.get("quarter_baseline_price_tqqq", b_tqqq))
 
 # ── Fetch prices ──────────────────────────────────────────────
@@ -58,6 +60,48 @@ hist_data = yf.download(tickers, period="1y", auto_adjust=False, progress=False)
 curr_tqqq = float(hist_data["TQQQ"].iloc[-1])
 curr_agg  = float(hist_data["AGG"].iloc[-1])
 curr_ibit = float(hist_data["IBIT"].iloc[-1])
+
+# ── Fetch USD/AED rate (AED is pegged at ~3.6725 per USD) ─────
+aed_usd_rate = 3.6725
+try:
+    fx_raw = yf.download("USDAED=X", period="5d", auto_adjust=False, progress=False)["Close"]
+    if not fx_raw.empty:
+        aed_usd_rate = float(fx_raw.squeeze().iloc[-1])
+except Exception as e:
+    print(f"⚠️ Could not fetch AED/USD rate, using fixed peg 3.6725: {e}")
+
+# ── Fetch ADCB live price from stockanalysis.com ──────────────
+def fetch_adcb_web():
+    try:
+        import re as _re
+        hdrs = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        resp = requests.get("https://stockanalysis.com/quote/adx/ADCB/", headers=hdrs, timeout=10)
+        m = _re.search(r'pd:([\d.]+)', resp.text)
+        if m:
+            return float(m.group(1))
+    except Exception as e:
+        print(f"⚠️ Web price fetch failed: {e}")
+    return None
+
+curr_adc     = b_adc  # fallback to buy price
+adc_hist_usd = None
+try:
+    adc_raw = yf.download("ADCB.AB", period="1y", auto_adjust=False, progress=False)["Close"]
+    if not adc_raw.empty:
+        adc_series = adc_raw.squeeze()
+        curr_adc = float(adc_series.iloc[-1])
+        adc_hist_usd = (s_adc * adc_series / aed_usd_rate).reindex(hist_data.index).ffill().dropna()
+        print(f"✅ ADCB.AB price (Yahoo): {curr_adc:.3f} AED")
+    else:
+        print("⚠️ No ADCB.AB data from Yahoo Finance.")
+except Exception as e:
+    print(f"⚠️ Yahoo Finance error: {e}")
+
+# ── Try live web price — overrides stale Yahoo data ───────────
+web_price = fetch_adcb_web()
+if web_price is not None:
+    curr_adc = web_price
+    print(f"✅ ADCB live price (web): {curr_adc:.3f} AED")
 
 def safe(n, d):
     if d is None or (isinstance(d, float) and abs(d) < 1e-12):
@@ -82,18 +126,29 @@ curr_val_ibit = s_ibit * curr_ibit
 profit_ibit   = curr_val_ibit - buy_val_ibit
 return_ibit   = safe(profit_ibit, buy_val_ibit)
 
-# ── Portfolio totals ──────────────────────────────────────────
-total_buy_val  = buy_val_tqqq  + buy_val_agg  + buy_val_ibit
-total_curr_val = curr_val_tqqq + curr_val_agg + curr_val_ibit
+# ── ADC metrics (values in AED, USD equiv for totals) ─────────
+buy_val_adc      = s_adc * b_adc           # AED
+curr_val_adc     = s_adc * curr_adc        # AED
+profit_adc       = curr_val_adc - buy_val_adc  # AED
+return_adc       = safe(profit_adc, buy_val_adc)
+buy_val_adc_usd  = buy_val_adc  / aed_usd_rate  # USD
+curr_val_adc_usd = curr_val_adc / aed_usd_rate  # USD
+
+# ── Portfolio totals (USD) ────────────────────────────────────
+total_buy_val  = buy_val_tqqq  + buy_val_agg  + buy_val_ibit  + buy_val_adc_usd
+total_curr_val = curr_val_tqqq + curr_val_agg + curr_val_ibit + curr_val_adc_usd
 total_profit   = total_curr_val - total_buy_val
 total_return   = safe(total_profit, total_buy_val)
 
-alloc_tqqq = safe(curr_val_tqqq, total_curr_val)
-alloc_agg  = safe(curr_val_agg,  total_curr_val)
-alloc_ibit = safe(curr_val_ibit, total_curr_val)
+alloc_tqqq = safe(curr_val_tqqq,    total_curr_val)
+alloc_agg  = safe(curr_val_agg,     total_curr_val)
+alloc_ibit = safe(curr_val_ibit,    total_curr_val)
+alloc_adc  = safe(curr_val_adc_usd, total_curr_val)
 
 # ── Risk metrics (full portfolio history) ─────────────────────
-history   = (s_tqqq * hist_data["TQQQ"]) + (s_agg * hist_data["AGG"]) + (s_ibit * hist_data["IBIT"])
+history = (s_tqqq * hist_data["TQQQ"]) + (s_agg * hist_data["AGG"]) + (s_ibit * hist_data["IBIT"])
+if adc_hist_usd is not None and not adc_hist_usd.empty:
+    history = history.add(adc_hist_usd, fill_value=0)
 daily_ret = history.pct_change().dropna()
 ann_ret   = float(daily_ret.mean() * 252)
 vol       = float(daily_ret.std() * np.sqrt(252))
@@ -154,6 +209,17 @@ try:
         "alloc_tqqq":             f(alloc_tqqq),
         "alloc_agg":              f(alloc_agg),
         "alloc_ibit":             f(alloc_ibit),
+        "price_adc":              curr_adc,
+        "shares_adc":             s_adc,
+        "buy_price_adc":          b_adc,
+        "buy_val_adc":            buy_val_adc,
+        "curr_val_adc":           curr_val_adc,
+        "profit_adc":             profit_adc,
+        "return_adc":             f(return_adc),
+        "alloc_adc":              f(alloc_adc),
+        "aed_usd_rate":           aed_usd_rate,
+        "curr_val_adc_usd":       curr_val_adc_usd,
+        "buy_val_adc_usd":        buy_val_adc_usd,
         "ann_return":             ann_ret,
         "volatility":             vol,
         "sharpe":                 f(sharpe),
@@ -175,12 +241,15 @@ tg_report = f"""
 📊 *Portfolio Analysis Report*
 _{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}_
 
-💰 *Total Value:* `${total_curr_val:,.2f}`
+💰 *Total Value:* `${total_curr_val:,.2f}` USD
 📈 *Total Return:* `{f(total_return)*100:+.2f}%` (${total_profit:,.2f})
 
 🔹 *TQQQ:* ${curr_tqqq:,.2f} ({f(return_tqqq)*100:+.2f}%)
 🔹 *AGG:* ${curr_agg:,.2f} ({f(return_agg)*100:+.2f}%)
 🔹 *IBIT:* ${curr_ibit:,.2f} ({f(return_ibit)*100:+.2f}%)
+🔸 *ADC (ADCB):* AED {curr_adc:,.3f} ({f(return_adc)*100:+.2f}%)
+   Value: AED {curr_val_adc:,.2f} ≈ ${curr_val_adc_usd:,.2f} USD
+   Rate: 1 USD = {aed_usd_rate:.4f} AED
 
 🎯 *Quarterly Target (9%):*
 • Status: `{f(q_perf)*100:+.2f}%`

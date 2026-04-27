@@ -5,5 +5,7 @@
     "buy_price_agg": 99.64,
     "shares_ibit": 188.63491544,
     "buy_price_ibit": 52.24,
-    "quarter_baseline_price_tqqq": 47.07
+    "quarter_baseline_price_tqqq": 47.07,
+    "shares_adc": 22500,
+    "buy_price_adc": 5.865
 }
