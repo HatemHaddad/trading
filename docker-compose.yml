@@ -29,3 +29,13 @@ services:
       - ./portfolio.json:/app/portfolio.json
     env_file: .env
     restart: always
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    volumes:
+      - ./trading.db:/app/trading.db
+      - ./portfolio.json:/app/portfolio.json
+    env_file: .env
+    restart: always
