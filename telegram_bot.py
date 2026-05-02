@@ -1,8 +1,10 @@
 import os
+import shutil
 import sys
 import time
 import subprocess
 from datetime import datetime
+from pathlib import Path
 
 import requests
 
@@ -80,6 +82,72 @@ def sanitize_output(value: str) -> str:
     return cleaned
 
 
+def format_bytes(value: float) -> str:
+    units = ["B", "KB", "MB", "GB", "TB"]
+    size = float(value)
+    for unit in units:
+        if size < 1024 or unit == units[-1]:
+            return f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{size:.1f} TB"
+
+
+def format_uptime(seconds: float) -> str:
+    seconds = int(seconds)
+    days, seconds = divmod(seconds, 86400)
+    hours, seconds = divmod(seconds, 3600)
+    minutes, _ = divmod(seconds, 60)
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    parts.append(f"{minutes}m")
+    return " ".join(parts)
+
+
+def read_meminfo() -> dict[str, int]:
+    values = {}
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            key, raw_value = line.split(":", 1)
+            values[key] = int(raw_value.strip().split()[0]) * 1024
+    except Exception as exc:
+        log(f"Could not read /proc/meminfo: {exc}")
+    return values
+
+
+def collect_health() -> str:
+    load_1, load_5, load_15 = os.getloadavg()
+    cpu_count = os.cpu_count() or 1
+
+    meminfo = read_meminfo()
+    mem_total = meminfo.get("MemTotal", 0)
+    mem_available = meminfo.get("MemAvailable", 0)
+    mem_used = max(mem_total - mem_available, 0)
+    mem_percent = (mem_used / mem_total * 100) if mem_total else 0
+
+    disk = shutil.disk_usage("/")
+    disk_percent = disk.used / disk.total * 100
+    uptime_seconds = float(Path("/proc/uptime").read_text().split()[0])
+
+    return (
+        "Server health\n"
+        f"Host: {os.uname().nodename}\n"
+        f"Time: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC\n"
+        f"Uptime: {format_uptime(uptime_seconds)}\n"
+        f"CPU cores: {cpu_count}\n"
+        f"Load: {load_1:.2f}, {load_5:.2f}, {load_15:.2f}\n"
+        f"RAM: {format_bytes(mem_used)} / {format_bytes(mem_total)} ({mem_percent:.1f}%)\n"
+        f"Disk /: {format_bytes(disk.used)} / {format_bytes(disk.total)} ({disk_percent:.1f}%)"
+    )
+
+
+def send_health() -> None:
+    log("/health received; sending server health")
+    send_message(collect_health())
+
+
 def run_report() -> int:
     log("/report received; starting run_and_save.py")
     send_message("Report requested. Generating a fresh portfolio report now...")
@@ -135,14 +203,20 @@ def handle_update(update: dict) -> None:
     command = command_from_message(message)
     if command == "/report":
         run_report()
+    elif command == "/health":
+        send_health()
     elif command in {"/start", "/help"}:
-        send_message("Available command: /report - generate and send a fresh portfolio report.")
+        send_message(
+            "Available commands:\n"
+            "/report - generate and send a fresh portfolio report\n"
+            "/health - show server CPU, memory, disk, load, and uptime"
+        )
 
 
 def main() -> None:
     require_config()
     offset = get_latest_update_offset()
-    log("Telegram report bot started and listening for /report")
+    log("Telegram report bot started and listening for /report and /health")
     while True:
         try:
             payload = {"timeout": POLL_TIMEOUT_SECONDS, "allowed_updates": ["message"], "offset": offset}
